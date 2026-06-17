@@ -9,6 +9,8 @@ const app = express(); // initializing a instance of a server
 
 const PORT = process.env.PORT || 5000 ; // getting port number from .env file
 
+
+// connect server to mongodb to access database ;
 mongoose.connect(process.env.DB_URL).then(()=>{
     console.log("database connected successfully");
 })
