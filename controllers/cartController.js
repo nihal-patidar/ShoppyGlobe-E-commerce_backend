@@ -1,5 +1,5 @@
 import Cart from "../models/cartModel.js";
-import Product from "../models/productModel.js"
+import Product from "../models/productModel.js";
 
 async function addToCart(req, res) {
   const { productId, quantity } = req.body;
@@ -18,12 +18,12 @@ async function addToCart(req, res) {
   }
 
   try {
-     const product = await Product.findById(productId);
+    const product = await Product.findById(productId);
 
-    if(quantity > product.stock_quantity){
+    if (quantity > product.stock_quantity) {
       return res.status(200).send({
-        msg : "Out of Stock"
-      })
+        msg: "Out of Stock",
+      });
     }
 
     const cartItem = await Cart.create({
@@ -65,16 +65,16 @@ async function updateToCart(req, res) {
 
     const product = await Product.findById(productId);
 
-    if(quantity > product.stock_quantity){
+    if (quantity > product.stock_quantity) {
       return res.status(200).send({
-        msg : "Out of Stock"
-      })
+        msg: "Out of Stock",
+      });
     }
 
     const updatedProduct = await Cart.findOneAndUpdate(
       { userId: userId, productId: productId },
       { $set: { quantity: quantity } },
-      { new : true } // return updated data
+      { new: true }, // return updated data
     );
 
     return res.status(200).send({
@@ -90,4 +90,38 @@ async function updateToCart(req, res) {
   }
 }
 
-export { addToCart, updateToCart };
+async function deleteFromCart(req, res) {
+  const { userId } = req.user;
+  const { productId } = req.body;
+
+  if (!productId) {
+    return res.status(400).send({
+      msg: "productId is required",
+    });
+  }
+
+  try {
+
+    const deletedCartItem = await Cart.findOneAndDelete(
+      {userId : userId , productId : productId}
+    )
+
+
+    if(!deletedCartItem){
+      return res.status(404).send({
+        msg : "Item Not Found"
+      })
+    }
+
+    return res.status(200).send({
+      msg : "Item has been removed successfully",
+      product : deletedCartItem
+    })
+  } catch (err) {
+    return res.status(500).send({
+      msg: "Internal Server Error",
+    });
+  }
+}
+
+export { addToCart, updateToCart, deleteFromCart };
