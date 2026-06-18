@@ -1,26 +1,32 @@
 import jwt from "jsonwebtoken";
 
+// Middleware to verify JWT token and protect routes
 async function auth(req, res, next) {
   try {
-    // extract token from header
+    // Extract token from Authorization header
+    // Format: Bearer <token>
     const token = req.headers?.authorization?.split(" ")[1];
 
-    // token missing
+    // Token not provided
     if (!token) {
       return res.status(401).send({
         msg: "Authentication token is required",
       });
     }
 
-    // verify token
+    // Verify and decode token
     const data = jwt.verify(token, process.env.JWT_KEY);
 
-    // attach user data to request
-    req.user = {...data.user , userId : data.user._id};
+    // Attach authenticated user's id to request object
+    req.user = {
+      userId: data.userId,
+    };
 
-    // console.log("req.user" , req.user);
+    // Pass control to next middleware/controller
     next();
+
   } catch (err) {
+    // Invalid or expired token
     return res.status(401).send({
       msg: "Invalid or expired token",
     });

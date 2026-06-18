@@ -2,25 +2,27 @@ import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+// Register a new user
 async function userRegister(req, res) {
-  // extract request data
+
+  // Extract user data from request body
   const { name, email, password } = req.body;
 
-  // validate name
+  // Validate name
   if (!name) {
     return res.status(400).send({
       msg: "Name is required",
     });
   }
 
-  // validate email format
+  // Validate email format
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).send({
       msg: "Invalid email address",
     });
   }
 
-  // validate password strength
+  // Validate password strength
   if (
     !password ||
     password.length < 8 ||
@@ -34,7 +36,7 @@ async function userRegister(req, res) {
   }
 
   try {
-    // check existing user
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -43,42 +45,45 @@ async function userRegister(req, res) {
       });
     }
 
-    // hash password
+    // Hash password before saving to database
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create user
+    // Create new user document
     await User.create({
       name,
       email,
       password: hashedPassword,
     });
 
-    // success response
+    // Send success response
     return res.status(201).send({
       msg: "User registered successfully",
     });
+
   } catch (err) {
     console.log("userRegister", err);
 
-    // server error response
+    // Handle unexpected server errors
     return res.status(500).send({
       msg: "Something went wrong. Please try again later",
     });
   }
 }
 
+// Authenticate user and generate JWT token
 async function userLogin(req, res) {
-  // extract login credentials
+
+  // Extract login credentials
   const { email, password } = req.body;
 
-  // validate email format
+  // Validate email format
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).send({
       msg: "Invalid email address",
     });
   }
 
-  // validate password format
+  // Validate password format
   if (
     !password ||
     password.length < 8 ||
@@ -92,51 +97,52 @@ async function userLogin(req, res) {
   }
 
   try {
-    // find user by email
+    // Find user by email
     const existingUser = await User.findOne({ email });
 
-    // user does not exist
+    // User not found
     if (!existingUser) {
       return res.status(401).send({
         msg: "Invalid email or password",
       });
     }
 
-    // compare entered password with hashed password
+    // Compare entered password with stored hashed password
     const isMatch = await bcrypt.compare(
       password,
       existingUser.password
     );
 
-    // password mismatch
+    // Password mismatch
     if (!isMatch) {
       return res.status(401).send({
         msg: "Invalid email or password",
       });
     }
 
-    // generate jwt token
+    // Generate JWT token valid for 1 day
     const token = jwt.sign(
-      { user : existingUser},
+      { userId: existingUser._id },
       process.env.JWT_KEY,
       { expiresIn: "1d" }
     );
 
-    // login success response
+    // Send login success response
     return res.status(200).send({
       msg: "User login successful",
       token,
-      user : existingUser
+      user: existingUser,
     });
 
   } catch (err) {
     console.log("userLogin", err);
 
-    // server error response
+    // Handle unexpected server errors
     return res.status(500).send({
       msg: "Something went wrong. Please try again later",
     });
   }
 }
 
+// Export authentication controllers
 export { userRegister, userLogin };
