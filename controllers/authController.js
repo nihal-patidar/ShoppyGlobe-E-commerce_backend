@@ -1,5 +1,6 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 async function userRegister(req, res) {
   // extract request data
@@ -67,8 +68,8 @@ async function userRegister(req, res) {
 }
 
 async function userLogin(req, res) {
+  // extract login credentials
   const { email, password } = req.body;
-
 
   // validate email format
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -77,7 +78,7 @@ async function userLogin(req, res) {
     });
   }
 
-  // validate password strength
+  // validate password format
   if (
     !password ||
     password.length < 8 ||
@@ -90,32 +91,53 @@ async function userLogin(req, res) {
     });
   }
 
-  try{
-    
-    const existingUser = await User.findOne({email : email});
+  try {
+    // find user by email
+    const existingUser = await User.findOne({ email });
 
-    if(!existingUser){
-        return res.status(404).send({
-            msg : "User Not Found"
-        })
+    // user does not exist
+    if (!existingUser) {
+      return res.status(401).send({
+        msg: "Invalid email or password",
+      });
     }
 
-    const isMatch = await bcrypt.compare(password , existingUser.password);
+    // compare entered password with hashed password
+    const isMatch = await bcrypt.compare(
+      password,
+      existingUser.password
+    );
 
-    if(!isMatch){ // password doesn't match 
-        return res.status(400).send({
-            msg : "Password Not Matched"
-        })
+    // password mismatch
+    if (!isMatch) {
+      return res.status(401).send({
+        msg: "Invalid email or password",
+      });
     }
 
+    // generate jwt token
+    const token = jwt.sign(
+      {
+        name: existingUser.name,
+        email: existingUser.email,
+      },
+      process.env.JWT_KEY,
+      { expiresIn: "1d" }
+    );
+
+    // login success response
     return res.status(200).send({
-        msg : "User login successful"
-    })
-    
-  }catch(err){
+      msg: "User login successful",
+      token,
+    });
+
+  } catch (err) {
+    console.log("userLogin", err);
+
+    // server error response
     return res.status(500).send({
-        msg : "Internal Server Error"
-    })
+      msg: "Something went wrong. Please try again later",
+    });
   }
 }
 
