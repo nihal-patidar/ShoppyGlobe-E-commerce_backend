@@ -1,22 +1,25 @@
-import User from "../models/userModel";
+import User from "../models/userModel.js";
+import bcrypt from "bcrypt";
 
 async function userRegister(req, res) {
+  // extract request data
   const { name, email, password } = req.body;
 
+  // validate name
   if (!name) {
     return res.status(400).send({
-      msg: "User name is Required",
+      msg: "Name is required",
     });
   }
 
-  // better email validation using regex pattern matching
+  // validate email format
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).send({
       msg: "Invalid email address",
     });
   }
 
-  // improve this one
+  // validate password strength
   if (
     !password ||
     password.length < 8 ||
@@ -25,40 +28,43 @@ async function userRegister(req, res) {
     !/[0-9]/.test(password)
   ) {
     return res.status(400).send({
-      msg: "Password must contain 8+ characters, one uppercase letter, one lowercase letter and one number",
+      msg: "Password must contain at least 8 characters, one uppercase letter, one lowercase letter and one number",
     });
   }
 
   try {
+    // check existing user
+    const existingUser = await User.findOne({ email });
 
-  const existingUser = await User.findOne({email : email});
-  
-  if(existingUser){
-    return res.status(409).send({
-        msg : "User already exists"
-    })
-  }
+    if (existingUser) {
+      return res.status(409).send({
+        msg: "An account with this email already exists",
+      });
+    }
 
-    const newUser = await User.create({
-      name: name,
-      email: email,
-      password: password,
+    // hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // create user
+    await User.create({
+      name,
+      email,
+      password: hashedPassword,
     });
 
-
-    // don't need use save() method , create already save to db
-    // newUser.save(); 
-
-    res.status(201).send({
-      msg: "User has been successfully created",
+    // success response
+    return res.status(201).send({
+      msg: "User registered successfully",
     });
+
   } catch (err) {
+    console.log("userRegister", err);
+
+    // server error response
     return res.status(500).send({
-      msg: "Internal Server error",
+      msg: "Something went wrong. Please try again later",
     });
   }
 }
 
-function userLogin(req, res) {}
-
-export {userRegister , userLogin};
+export { userRegister };
