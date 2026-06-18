@@ -129,6 +129,7 @@ async function userLogin(req, res) {
     return res.status(200).send({
       msg: "User login successful",
       token,
+      user : existingUser
     });
 
   } catch (err) {

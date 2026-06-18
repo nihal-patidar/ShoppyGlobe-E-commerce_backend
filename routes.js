@@ -4,7 +4,6 @@ import authRoutes from './routes/authRoutes.js';
 
 const routes = express.Router()
 
-
 routes.use(authRoutes);
 
 routes.use(productRoutes);
