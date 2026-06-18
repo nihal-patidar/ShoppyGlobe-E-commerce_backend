@@ -60,3 +60,5 @@ async function userRegister(req, res) {
 }
 
 function userLogin(req, res) {}
+
+export {userRegister , userLogin};
