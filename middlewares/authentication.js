@@ -13,13 +13,13 @@ async function auth(req, res, next) {
     }
 
     // verify token
-    const user = jwt.verify(token, process.env.JWT_KEY);
+    const data = jwt.verify(token, process.env.JWT_KEY);
 
     // attach user data to request
-    req.user = user;
+    req.user = {...data.user , userId : data.user._id};
 
+    // console.log("req.user" , req.user);
     next();
-
   } catch (err) {
     return res.status(401).send({
       msg: "Invalid or expired token",

@@ -117,10 +117,7 @@ async function userLogin(req, res) {
 
     // generate jwt token
     const token = jwt.sign(
-      {
-        name: existingUser.name,
-        email: existingUser.email,
-      },
+      { user : existingUser},
       process.env.JWT_KEY,
       { expiresIn: "1d" }
     );

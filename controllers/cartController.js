@@ -1,9 +1,11 @@
 import Cart from "../models/cartModel.js";
+import Product from "../models/productModel.js"
 
 async function addToCart(req, res) {
-  const { userId, productId, quantity } = req.body;
+  const { productId, quantity } = req.body;
+  const { userId } = req.user;
 
-  if (!userId || !productId || !quantity) {
+  if (!productId || !quantity) {
     return res.status(400).send({
       msg: "userId, productId and quantity all are required",
     });
@@ -16,6 +18,14 @@ async function addToCart(req, res) {
   }
 
   try {
+     const product = await Product.findById(productId);
+
+    if(quantity > product.stock_quantity){
+      return res.status(200).send({
+        msg : "Out of Stock"
+      })
+    }
+
     const cartItem = await Cart.create({
       userId: userId,
       productId: productId,
@@ -34,11 +44,13 @@ async function addToCart(req, res) {
 }
 
 async function updateToCart(req, res) {
-  const { userId, productId, quantity } = req.body;
+  const { productId, quantity } = req.body;
 
-  if (!userId || !productId || !quantity) {
+  const { userId } = req.user;
+
+  if (!productId || !quantity) {
     return res.status(400).send({
-      msg: "userId, productId and quantity all are required",
+      msg: "productId and quantity all are required",
     });
   }
 
@@ -48,33 +60,34 @@ async function updateToCart(req, res) {
     });
   }
 
-  try{
+  try {
+    // validate product availability before adding to the cart.
 
-  const product = await Cart.findOne({userId : userId , productId : productId});
+    const product = await Product.findById(productId);
 
-  if(!product){
-    return res.status(404).send({
-        msg : "product is not found users cart",
-    })
-  }
+    if(quantity > product.stock_quantity){
+      return res.status(200).send({
+        msg : "Out of Stock"
+      })
+    }
 
-  const updateProduct = await Cart.updateOne({_id : product._id},{
-    $set : {quantity : quantity}
-  })
+    const updatedProduct = await Cart.findOneAndUpdate(
+      { userId: userId, productId: productId },
+      { $set: { quantity: quantity } },
+      { new : true } // return updated data
+    );
 
-  return res.status(200).send({
-    msg : "Quantity has been updated successfully",
-    product : updateProduct
-  })
-
-}catch(err){
-    console.log("updateToCart" , err);
+    return res.status(200).send({
+      msg: "Quantity has been updated successfully",
+      product: updatedProduct,
+    });
+  } catch (err) {
+    console.log("updateToCart", err);
 
     return res.status(500).send({
-        msg : "Interval Server Error",
-    })
-
-}
+      msg: "Interval Server Error",
+    });
+  }
 }
 
 export { addToCart, updateToCart };
