@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 
 dotenv.config();
 
-const products = [
+let products = [
   {
     name: "iPhone 15",
     price: 79999,
@@ -96,6 +96,11 @@ const products = [
     stock_quantity: 19,
   },
 ];
+
+// products = products.map((product)=>{
+//   product.price = { amount : product.price , currency : "Ruppee"}
+//   return product ;
+// })
 
 const seedProducts = async () => {
   try {

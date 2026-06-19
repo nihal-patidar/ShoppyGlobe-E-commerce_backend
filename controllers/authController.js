@@ -103,7 +103,7 @@ async function userLogin(req, res) {
     // User not found
     if (!existingUser) {
       return res.status(401).send({
-        msg: "Invalid email or password",
+        msg: "User Not Found",
       });
     }
 
@@ -116,7 +116,7 @@ async function userLogin(req, res) {
     // Password mismatch
     if (!isMatch) {
       return res.status(401).send({
-        msg: "Invalid email or password",
+        msg: "Password does not match",
       });
     }
 
@@ -131,7 +131,7 @@ async function userLogin(req, res) {
     return res.status(200).send({
       msg: "User login successful",
       token,
-      user: existingUser,
+      // user: existingUser, // avoid to send to client due to security issue.
     });
 
   } catch (err) {
