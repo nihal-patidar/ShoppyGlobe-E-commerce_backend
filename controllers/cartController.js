@@ -17,7 +17,7 @@ async function addToCart(req, res) {
   // Extract authenticated user id
   const { userId } = req.user;
 
-  if (!isValidObjectId(productId)) {
+  if (!isValidObjectId(userId)) {
     return res.status(400).send({
       msg: "Invalid User ID",
     });
