@@ -122,7 +122,7 @@ ShoppyGlobe-E-commerce_backend
 ├── screenshots/
 │
 ├── .env
-├── index.js
+├── server.js
 ├── routes.js
 ├── package.json
 └── README.md
