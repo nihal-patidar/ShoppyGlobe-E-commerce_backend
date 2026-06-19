@@ -129,257 +129,396 @@ ShoppyGlobe-E-commerce_backend
 ```
 
 ---
+# API Documentation
 
 ## Available API Routes
 
-### Authentication
+| Method | Endpoint | Access | Description |
+|----------|----------|----------|----------|
+| POST | `/register` | Public | Register a new user |
+| POST | `/login` | Public | Login user and generate JWT token |
+| GET | `/products` | Public | Get all products |
+| GET | `/products/:id` | Public | Get product details by ID |
+| POST | `/cart` | Protected | Add product to cart |
+| PUT | `/cart/:productId` | Protected | Update cart quantity |
+| DELETE | `/cart/:productId` | Protected | Remove product from cart |
 
-| Method | Route | Description |
-|----------|----------|----------|
-| POST | `/register` | Register a new user |
-| POST | `/login` | Login user and generate JWT token |
+---
+
+## Authentication
+
+### JWT Authentication
+
+Protected cart routes require a valid JWT token.
+
+**Header Format**
+
+```http
+Authorization: Jwt <token>
+```
+
+### Protected Routes
+
+- POST `/cart`
+- PUT `/cart/:productId`
+- DELETE `/cart/:productId`
+
+---
+
+## Database Collections
+
+### Users
+
+Stores registered user information.
+```
+**Fields**
+- name
+- email (unique)
+- password (hashed)
+```
 
 ### Products
 
-| Method | Route | Description |
-|----------|----------|----------|
-| GET | `/products` | Fetch all products |
-| GET | `/products/:id` | Fetch single product by ID |
+Stores product catalog.
+```
+**Fields**
+- name
+- price
+- description
+- stock_quantity
+```
 
-### Cart (Protected Routes)
+### Cart
 
-| Method | Route | Description |
-|----------|----------|----------|
-| POST | `/cart` | Add product to cart |
-| PUT | `/cart/:productId` | Update cart quantity |
-| DELETE | `/cart/:productId` | Remove product from cart |
+Stores products added by users.
+```
+**Fields**
+- userId
+- productId
+- quantity
+```
 
-## Authentication (JWT)
+---
 
-- **Token Issuance:** When a user logs in (via a separate `/login` endpoint), the server signs a JWT payload containing the user’s ID. For example:  
-  ```js
-  const token = jwt.sign(
-    { userId: existingUser._id },
-    process.env.JWT_KEY,
-    { expiresIn: "1d" }
-  );
-  ```  
-  This creates a token that expires in 1 day. The client then sends this token in the `Authorization` header for protected requests.  
-- **Jwt Token Format:** Protected routes expect an `Authorization` header of the form:  
-  ```
-  Authorization: Jwt <token>
-  ```  
-  This is the standard “Jwt” token pattern. For example: `Authorization: Jwt eyJhbGciOiJIUzI1NiIsInR5cCI...`.  
-- **Middleware Verification:** The `auth` middleware extracts and verifies the token. In this app, it does:
-  ```js
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).send({ msg: "Authentication token is required" });
-  const data = jwt.verify(token, process.env.JWT_KEY);
-  req.user = { userId: data.userId };  // attach to request
-  next();
-  ```  
-  After this middleware runs, protected routes can access `req.user.userId` to know which user is authenticated.  
+# API Endpoints
 
-## Data Models
+## 1. Register User
 
-The main Mongoose schemas are **User**, **Product**, and **Cart**. Key fields and constraints:
+### Endpoint
 
-- **User** (`users` collection):  
-  - `name` (String, required) – User’s full name.  
-  - `email` (String, required, unique) – User’s email (lowercased and trimmed).  
-  - `password` (String, required) – Hashed password.  
-  - Timestamps (`createdAt`, `updatedAt`) automatically added by Mongoose.  
+```http
+POST /register
+```
 
-- **Product** (`products` collection):  
-  - `name` (String, required) – Product name (trimmed).  
-  - `price` (Number, required, min 0) – Product price (no negatives).  
-  - `description` (String, required) – Product description (trimmed).  
-  - `stock_quantity` (Number, required, min 0) – Units in stock (no negatives).  
-  - Timestamps (`createdAt`, `updatedAt`).  
+### Features
 
-- **Cart** (`carts` collection):  
-  - `userId` (ObjectId, required) – Reference to the **User** (who owns this cart item).  
-  - `productId` (ObjectId, required) – Reference to the **Product**.  
-  - `quantity` (Number, required, min 1) – How many units of this product in the cart (at least 1).  
+- Register a new user account.
+- Validates name, email, and password.
+- Prevents duplicate email registration.
+- Stores encrypted password in MongoDB.
 
-Many schema options (e.g. `required`, `unique`, `min`, `trim`) are built-in Mongoose validators. For example, setting `required: true` ensures Mongoose will reject missing fields, and `trim: true` auto-trims whitespace on strings. 
+### Validation
 
-## API Endpoints
+- Name is required.
+- Valid email required.
+- Password must contain:
+  - Minimum 8 characters
+  - One uppercase letter
+  - One lowercase letter
+  - One number
 
-All cart-related endpoints are under `/cart`. They **require authentication** (JWT Jwt token). Below is a summary table, followed by details for each route.
+### Success Response
 
-| Method | Endpoint                | Description                        | Auth |
-|--------|-------------------------|------------------------------------|------|
-| POST   | `/cart`                 | Add a product to the cart          | Yes  |
-| PUT    | `/cart/:productId`      | Update quantity of a cart item     | Yes  |
-| DELETE | `/cart/:productId`      | Remove a product from the cart     | Yes  |
+```json
+{
+  "msg": "User registered successfully"
+}
+```
 
-### 1. **Add Product to Cart** (POST `/cart`)
+### Error Cases
 
-- **Purpose:** Create a new cart item for the authenticated user.  
-- **Auth Required:** Yes. Include header `Authorization: Jwt <token>`.  
-- **Request Headers:**  
-  - `Content-Type: application/json`  
-  - `Authorization: Jwt <token>` (JWT)  
+- Invalid email format.
+- Weak password.
+- User already exists.
 
-- **Request Body (JSON):**  
-  | Field      | Type   | Required | Details                                 |
-  |------------|--------|----------|-----------------------------------------|
-  | `productId`| String | Yes      | The ObjectId of an existing **Product** |
-  | `quantity` | Number | Yes      | Number of units to add (≥ 1)            |
+---
 
-- **Validation Rules:**  
-  - If `productId` or `quantity` is missing: **400 Bad Request**, `{ msg: "Product ID and quantity are required" }`.  
-  - If `quantity` is not a number or `< 1`: **400 Bad Request**, `{ msg: "Quantity must be greater than 0" }`.  
-  - If the specified product does not exist: **404 Not Found**, `{ msg: "Product not found" }`.  
-  - If `quantity > product.stock_quantity`: **400 Bad Request**, `{ msg: "Requested quantity exceeds available stock" }`.  
-  - If a cart item for this user & product already exists: **409 Conflict**, `{ msg: "Product already exists in cart" }`.  
+## 2. Login User
 
-- **Processing Steps:**  
-  1. Verify JWT and get `userId` from `req.user`.  
-  2. Validate input fields.  
-  3. Fetch the product by `productId`.  
-  4. Check `product.stock_quantity` vs requested `quantity`.  
-  5. Query `Cart` to see if an item already exists for `(userId, productId)`.  
-  6. If all checks pass, create a new `Cart` document:  
-     ```js
-     await Cart.create({ userId, productId, quantity });
-     ```  
+### Endpoint
 
-  The `"product"` field contains the newly created cart item (with its `_id`, etc.).
+```http
+POST /login
+```
 
-- **Error Responses:**  
-  - **400 Bad Request:** Invalid input, e.g.:  
-    ```json
-    { "msg": "Product ID and quantity are required" }
-    ```  
-    ```json
-    { "msg": "Quantity must be greater than 0" }
-    ```  
-    ```json
-    { "msg": "Requested quantity exceeds available stock" }
-    ```
-  - **401 Unauthorized:** Missing or invalid JWT token (see *Authentication* above). Example:  
-    ```json
-    { "msg": "Authentication token is required" }
-    ```  
-  - **404 Not Found:** Product ID not found or (in other routes) cart item not found. Example:  
-    ```json
-    { "msg": "Product not found" }
-    ```  
-  - **409 Conflict:** Duplicate item. Example:  
-    ```json
-    { "msg": "Product already exists in cart" }
-    ```  
-  - **500 Internal Server Error:** Any unexpected error. Example:  
-    ```json
-    { "msg": "Internal Server Error" }
-    ```
+### Features
 
--
+- Authenticates registered users.
+- Verifies email and password.
+- Generates JWT token.
+- Enables access to protected routes.
 
-### 2. **Update Cart Quantity** (PUT `/cart/:productId`)
+### Success Response
 
-- **Purpose:** Update the `quantity` of an existing cart item for the authenticated user.  
-- **Auth Required:** Yes (JWT).  
-- **Request Headers:**  
-  - `Content-Type: application/json`  
-  - `Authorization: Jwt <token>`  
+```json
+{
+  "token": "jwt_token"
+}
+```
 
-- **Route Parameters:**  
-  - `productId` (String, required) – The ObjectId of the product to update in the cart (in the URL).
+### Error Cases
 
-- **Request Body (JSON):**  
-  | Field     | Type   | Required | Details                  |
-  |-----------|--------|----------|--------------------------|
-  | `quantity`| Number | Yes      | New quantity (≥ 1)       |
+- User not found.
+- Invalid password.
 
-- **Validation Rules:**  
-  - If `quantity` is missing or invalid: **400 Bad Request**, `{ msg: "Product ID and quantity are required" }` or `{ msg: "Quantity must be greater than 0" }`.  
-  - The `productId` must match an existing product, else **404 Not Found**, `{ msg: "Product not found" }`.  
-  - If `quantity > product.stock_quantity`: **400 Bad Request**, `{ msg: "Requested quantity exceeds available stock" }`.  
+---
 
-- **Processing Steps:**  
-  1. Verify JWT and get `userId`.  
-  2. Validate inputs (note: `productId` comes from `req.params`).  
-  3. Fetch the product to ensure it exists and check stock.  
-  4. Update the cart item:  
-     ```js
-     const updatedCartItem = await Cart.findOneAndUpdate(
-       { userId, productId },
-       { $set: { quantity } },
-       { returnDocument: "after" }  // returns the updated doc
-     );
-     ```  
-  5. If no matching cart item was found (`updatedCartItem == null`), return 404.  
+## 3. Get All Products
 
-- **Success Response:** **200 OK**  
-  ```json
+### Endpoint
+
+```http
+GET /products
+```
+
+### Features
+
+- Retrieves all products from MongoDB.
+- Returns complete product list.
+- Publicly accessible API.
+
+### Success Response
+
+```json
+[
   {
-    "msg": "Cart quantity updated successfully",
-    "product": {
-      "_id": "64c1e5f1a3b2c9dabc123456",
-      "userId": "64c1e5bfa3b2c9dabc123450",
-      "productId": "64c1e5cfa3b2c9dabc123451",
-      "quantity": 5
-    }
+    "_id": "...",
+    "name": "Product Name",
+    "price": 500
   }
-  ```  
-  The `"product"` field is the updated cart document.
+]
+```
 
-- **Error Responses:**  
-  - **400 Bad Request:** Invalid input (same messages as POST).  
-  - **401 Unauthorized:** Missing/invalid JWT.  
-  - **404 Not Found:** Either the product does not exist, or the cart item for this user/product was not found. Example:  
-    ```json
-    { "msg": "Cart item not found" }
-    ```  
-  - **500 Internal Server Error:** On unexpected failures.  
+### Error Cases
 
--
+- Internal server error.
 
-### 3. **Remove Product from Cart** (DELETE `/cart/:productId`)
+---
 
-- **Purpose:** Delete a product from the authenticated user’s cart.  
-- **Auth Required:** Yes (JWT).  
-- **Request Headers:**  
-  - `Authorization: Jwt <token>`  
+## 4. Get Product By ID
 
-- **Route Parameters:**  
-  - `productId` (String, required) – The ObjectId of the product to remove.
+### Endpoint
 
-- **Request Body:** None.
+```http
+GET /products/:id
+```
 
-- **Validation Rules:**  
-  - If `productId` is missing (though in a well-formed request it’s in the URL).  
-- **Processing Steps:**  
-  1. Verify JWT, get `userId`.  
-  2. Delete the cart item:  
-     ```js
-     const deletedCartItem = await Cart.findOneAndDelete({ userId, productId });
-     ```  
-  3. If no item was deleted (`deletedCartItem == null`), respond with 404.  
+### Features
 
-- **Success Response:** **200 OK**  
-  ```json
-  {
-    "msg": "Cart item removed successfully",
-    "product": {
-      "_id": "64c1e5f1a3b2c9dabc123456",
-      "userId": "64c1e5bfa3b2c9dabc123450",
-      "productId": "64c1e5cfa3b2c9dabc123451",
-      "quantity": 2
-    }
-  }
-  ```  
-  `"product"` contains the deleted cart item data.
+- Fetches a single product by ID.
+- Returns detailed product information.
+- Publicly accessible API.
 
-- **Error Responses:**  
-  - **400 Bad Request:** If `productId` is not provided (e.g. malformed route).  
-  - **401 Unauthorized:** Missing/invalid JWT.  
-  - **404 Not Found:** No cart item matching `(userId, productId)` was found.  
-  - **500 Internal Server Error:** Unexpected issues.  
+### Error Cases
 
+- Product not found.
+- Invalid product ID.
+
+---
+
+## 5. Add Product To Cart
+
+### Endpoint
+
+```http
+POST /cart
+```
+
+### Features
+
+- Adds product to **authenticated user's** cart.
+- Validates product availability.
+- Checks stock quantity.
+- Prevents duplicate cart entries.
+- Stores cart item in MongoDB.
+
+### Request Body
+
+```json
+{
+  "productId": "product_id",
+  "quantity": 2
+}
+```
+
+### Validation
+
+- Product must exist.
+- Quantity must be greater than 0.
+- Quantity must not exceed available stock.
+- Product cannot already exist in cart.
+
+### Success Response
+
+```json
+{
+  "msg": "Product added successfully"
+}
+```
+
+### Error Cases
+
+- Authentication failed.
+- Product not found.
+- Duplicate cart item.
+- Insufficient stock.
+
+---
+
+## 6. Update Cart Quantity
+
+### Endpoint
+
+```http
+PUT /cart/:productId
+```
+
+### Features
+
+- Updates quantity of an existing cart item.
+- Verifies available stock.
+- Returns updated cart information.
+
+### Request Body
+
+```json
+{
+  "quantity": 5
+}
+```
+
+### Validation
+
+- Quantity must be greater than 0.
+- Product must exist.
+- Quantity must not exceed available stock.
+- Cart item must exist.
+
+### Success Response
+
+```json
+{
+  "msg": "Cart quantity updated successfully"
+}
+```
+
+### Error Cases
+
+- Authentication failed.
+- Product not found.
+- Cart item not found.
+- Insufficient stock.
+
+---
+
+## 7. Remove Product From Cart
+
+### Endpoint
+
+```http
+DELETE /cart/:productId
+```
+
+### Features
+
+- Removes product from user's cart.
+- Deletes matching cart record.
+- Returns deleted cart item information.
+
+### Validation
+
+- User must be authenticated.
+- Cart item must exist.
+
+### Success Response
+
+```json
+{
+  "msg": "Cart item removed successfully"
+}
+```
+
+### Error Cases
+
+- Authentication failed.
+- Cart item not found.
+
+---
+
+## Common Error Responses
+
+### 400 Bad Request
+
+```json
+{
+  "msg": "Invalid request data"
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "msg": "Authentication token is required"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "msg": "Resource not found"
+}
+```
+
+### 409 Conflict Duplicate
+
+```json
+{
+  "msg" : "User already exists"
+}
+
+{
+  "msg": "Product already exists in cart",
+}
+```
+
+### 500 Internal Server Error
+
+```json
+{
+  "msg": "Internal Server Error"
+}
+```
+
+---
+
+## Key Features Implemented
+
+- User Registration
+- User Login
+- JWT Authentication
+- Authorization Middleware
+- Protected Cart Routes
+- MongoDB Integration
+- Product APIs
+- Cart APIs
+- Input Validation
+- Error Handling
+- Duplicate Record Prevention
+- Stock Validation
+- Thunder Client API Testing
+----
 
 ## API Testing Screenshots
 
@@ -591,19 +730,17 @@ Returns an error when attempting to update a non-existent cart item.
 
 ---
 
-### Features Demonstrated
+---
 
-- User Registration
-- User Login
-- JWT Authentication
-- Protected Routes
-- Product Listing
-- Product Details
-- Add Product To Cart
-- Update Cart Quantity
-- MongoDB Integration
-- Input Validation
-- Duplicate Record Prevention
-- Stock Validation
-- Error Handling
-- Thunder Client API Testing
+## Author
+
+**Nihal Patidar**
+
+Final Year B.Tech (Information Technology)  
+Jabalpur Engineering College, Jabalpur
+
+---
+
+## GitHub Repository
+
+https://github.com/nihal-patidar/ShoppyGlobe-E-commerce_backend
