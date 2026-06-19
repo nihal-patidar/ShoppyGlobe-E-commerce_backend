@@ -1,26 +1,158 @@
 # Shopping Cart API
 
 **Executive Summary:** This project provides a simple **Shopping Cart** REST API built with Node.js, Express, and MongoDB (via Mongoose). It allows authenticated users to **add products to a cart**, **update quantities**, and **remove products** from their cart. Authentication is handled using JSON Web Tokens (JWT), with a middleware that verifies tokens on each protected route. This README documents setup, models, authentication, and each cart endpoint in detail, including request/response schemas, validation rules, example requests, and expected outcomes. 
+## Installation & Setup
 
-## Prerequisites & Setup
+### 1. Clone Repository
 
-- **Node.js & npm:** Install [Node.js](https://nodejs.org/) (v14+) and npm.  
-- **MongoDB:** Have access to a MongoDB database (local or hosted).  
-- **Environment variables:** Create a `.env` file (in project root) with your configuration. At minimum, you need:
-  ```
-  MONGODB_URI="mongodb://localhost:27017/your-db-name"
-  JWT_KEY="your-secret-key"
-  PORT=3000
-  ```
-  - The `MONGODB_URI` is your MongoDB connection string. For local development, you can use `mongodb://127.0.0.1:27017/shop` or similar.  
-  - The `JWT_KEY` is a secret string used to sign JWT tokens. **Do not hard-code it; store it in the environment** (e.g. in `.env`) as per Node best practices.  
-- **Dependencies:** Install packages with `npm install`. Key dependencies include:
-  - `express` – web framework for Node.js  
-  - `mongoose` – MongoDB ODM for defining schemas and connecting to the database  
-  - `jsonwebtoken` – for creating/verifying JWT tokens  
-  - `bcrypt` – for hashing passwords  
-  - `dotenv` – loads `.env` configuration into `process.env`  
-- **Start the server:** Add scripts in `package.json`, e.g.: `"start": "node index.js"`, `"dev": "nodemon index.js"`. Then run `npm start` (or `npm run dev`) to launch the API. You should see a log like `Connected to MongoDB` if `mongoose.connect()` succeeds.  
+```bash
+git clone https://github.com/nihal-patidar/ShoppyGlobe-E-commerce_backend.git
+cd ShoppyGlobe-E-commerce_backend
+```
+
+---
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+---
+
+### 3. Configure Environment Variables
+
+Create a `.env` file in the project root directory.
+
+```env
+PORT=5000
+
+MONGO_URI=your_mongodb_connection_string
+
+JWT_KEY=your_secret_jwt_key
+```
+
+Example:
+
+```env
+PORT=5000
+
+MONGO_URI=mongodb://127.0.0.1:27017/shoppyglobe
+
+JWT_KEY=mySecretKey123
+```
+
+---
+
+### 4. Seed Dummy Products
+
+Populate the Products collection with sample data before testing APIs.
+
+```bash
+node utils/seedProducts.js
+```
+
+Expected Output:
+
+```bash
+Products seeded successfully
+```
+
+---
+
+### 5. Start Development Server
+
+```bash
+npm start
+```
+
+or
+
+```bash
+node server.js
+```
+
+Expected Output:
+
+```bash
+MongoDB Connected Successfully
+Server running on port 5000
+```
+
+---
+
+### 6. Verify API
+
+Open Thunder Client or Postman and test:
+
+```http
+GET http://localhost:5000/products
+```
+
+If products are returned successfully, the setup is complete.
+
+---
+
+## Project Structure
+
+```text
+ShoppyGlobe-E-commerce_backend
+│
+├── controllers/
+│   ├── authController.js
+│   ├── cartController.js
+│   └── productController.js
+│
+├── middlewares/
+│   └── auth.js
+│
+├── models/
+│   ├── userModel.js
+│   ├── productModel.js
+│   └── cartModel.js
+│
+├── routes/
+│   ├── authRoutes.js
+│   ├── cartRoutes.js
+│   └── productRoutes.js
+│
+├── utils/
+│   └── seedProducts.js
+│
+├── screenshots/
+│
+├── .env
+├── index.js
+├── routes.js
+├── package.json
+└── README.md
+```
+
+---
+
+## Available API Routes
+
+### Authentication
+
+| Method | Route | Description |
+|----------|----------|----------|
+| POST | `/register` | Register a new user |
+| POST | `/login` | Login user and generate JWT token |
+
+### Products
+
+| Method | Route | Description |
+|----------|----------|----------|
+| GET | `/products` | Fetch all products |
+| GET | `/products/:id` | Fetch single product by ID |
+
+### Cart (Protected Routes)
+
+| Method | Route | Description |
+|----------|----------|----------|
+| POST | `/cart` | Add product to cart |
+| PUT | `/cart/:productId` | Update cart quantity |
+| DELETE | `/cart/:productId` | Remove product from cart |
 
 ## Authentication (JWT)
 
@@ -33,11 +165,11 @@
   );
   ```  
   This creates a token that expires in 1 day. The client then sends this token in the `Authorization` header for protected requests.  
-- **Bearer Token Format:** Protected routes expect an `Authorization` header of the form:  
+- **Jwt Token Format:** Protected routes expect an `Authorization` header of the form:  
   ```
-  Authorization: Bearer <token>
+  Authorization: Jwt <token>
   ```  
-  This is the standard “Bearer” token pattern. For example: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI...`.  
+  This is the standard “Jwt” token pattern. For example: `Authorization: Jwt eyJhbGciOiJIUzI1NiIsInR5cCI...`.  
 - **Middleware Verification:** The `auth` middleware extracts and verifies the token. In this app, it does:
   ```js
   const token = req.headers.authorization?.split(" ")[1];
@@ -74,7 +206,7 @@ Many schema options (e.g. `required`, `unique`, `min`, `trim`) are built-in Mong
 
 ## API Endpoints
 
-All cart-related endpoints are under `/cart`. They **require authentication** (JWT Bearer token). Below is a summary table, followed by details for each route.
+All cart-related endpoints are under `/cart`. They **require authentication** (JWT Jwt token). Below is a summary table, followed by details for each route.
 
 | Method | Endpoint                | Description                        | Auth |
 |--------|-------------------------|------------------------------------|------|
@@ -85,10 +217,10 @@ All cart-related endpoints are under `/cart`. They **require authentication** (J
 ### 1. **Add Product to Cart** (POST `/cart`)
 
 - **Purpose:** Create a new cart item for the authenticated user.  
-- **Auth Required:** Yes. Include header `Authorization: Bearer <token>`.  
+- **Auth Required:** Yes. Include header `Authorization: Jwt <token>`.  
 - **Request Headers:**  
   - `Content-Type: application/json`  
-  - `Authorization: Bearer <token>` (JWT)  
+  - `Authorization: Jwt <token>` (JWT)  
 
 - **Request Body (JSON):**  
   | Field      | Type   | Required | Details                                 |
@@ -114,18 +246,6 @@ All cart-related endpoints are under `/cart`. They **require authentication** (J
      await Cart.create({ userId, productId, quantity });
      ```  
 
-- **Success Response:** **201 Created**  
-  ```json
-  {
-    "msg": "Product added to cart successfully",
-    "product": {
-      "_id": "64c1e5f1a3b2c9dabc123456",
-      "userId": "64c1e5bfa3b2c9dabc123450",
-      "productId": "64c1e5cfa3b2c9dabc123451",
-      "quantity": 2
-    }
-  }
-  ```  
   The `"product"` field contains the newly created cart item (with its `_id`, etc.).
 
 - **Error Responses:**  
@@ -156,27 +276,7 @@ All cart-related endpoints are under `/cart`. They **require authentication** (J
     { "msg": "Internal Server Error" }
     ```
 
-- **Example Requests:**  
-  **cURL:**  
-  ```bash
-  curl -X POST http://localhost:3000/cart \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer <your-token>" \
-    -d '{"productId":"64c1e5cfa3b2c9dabc123451","quantity":2}'
-  ```  
-  **Fetch (JavaScript):**  
-  ```js
-  fetch("http://localhost:3000/cart", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer <your-token>"
-    },
-    body: JSON.stringify({ productId: "64c1e5cfa3b2c9dabc123451", quantity: 2 })
-  })
-  .then(res => res.json())
-  .then(data => console.log(data));
-  ```
+-
 
 ### 2. **Update Cart Quantity** (PUT `/cart/:productId`)
 
@@ -184,7 +284,7 @@ All cart-related endpoints are under `/cart`. They **require authentication** (J
 - **Auth Required:** Yes (JWT).  
 - **Request Headers:**  
   - `Content-Type: application/json`  
-  - `Authorization: Bearer <token>`  
+  - `Authorization: Jwt <token>`  
 
 - **Route Parameters:**  
   - `productId` (String, required) – The ObjectId of the product to update in the cart (in the URL).
@@ -236,34 +336,14 @@ All cart-related endpoints are under `/cart`. They **require authentication** (J
     ```  
   - **500 Internal Server Error:** On unexpected failures.  
 
-- **Example Requests:**  
-  **cURL:**  
-  ```bash
-  curl -X PUT http://localhost:3000/cart/64c1e5cfa3b2c9dabc123451 \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer <your-token>" \
-    -d '{"quantity":5}'
-  ```  
-  **Fetch (JavaScript):**  
-  ```js
-  fetch("http://localhost:3000/cart/64c1e5cfa3b2c9dabc123451", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer <your-token>"
-    },
-    body: JSON.stringify({ quantity: 5 })
-  })
-  .then(res => res.json())
-  .then(data => console.log(data));
-  ```
+-
 
 ### 3. **Remove Product from Cart** (DELETE `/cart/:productId`)
 
 - **Purpose:** Delete a product from the authenticated user’s cart.  
 - **Auth Required:** Yes (JWT).  
 - **Request Headers:**  
-  - `Authorization: Bearer <token>`  
+  - `Authorization: Jwt <token>`  
 
 - **Route Parameters:**  
   - `productId` (String, required) – The ObjectId of the product to remove.
@@ -300,54 +380,230 @@ All cart-related endpoints are under `/cart`. They **require authentication** (J
   - **404 Not Found:** No cart item matching `(userId, productId)` was found.  
   - **500 Internal Server Error:** Unexpected issues.  
 
-- **Example Requests:**  
-  **cURL:**  
-  ```bash
-  curl -X DELETE http://localhost:3000/cart/64c1e5cfa3b2c9dabc123451 \
-    -H "Authorization: Bearer <your-token>"
-  ```  
-  **Fetch (JavaScript):**  
-  ```js
-  fetch("http://localhost:3000/cart/64c1e5cfa3b2c9dabc123451", {
-    method: "DELETE",
-    headers: { "Authorization": "Bearer <your-token>" }
-  })
-  .then(res => res.json())
-  .then(data => console.log(data));
-  ```
 
-## Additional Notes
+## API Testing Screenshots
 
-- **Middleware Attachments:** After JWT verification, `req.user` is an object with `{ userId: "<user-id>" }`. You can access `req.user.userId` in controllers. No other user info (like password) is exposed in the token.  
+### 01. User Registration
 
-- **Side Effects:** The **stock check** on product quantity is the only side-effect logic: the API **does not** decrement stock automatically when adding to cart. It only validates that `quantity <= stock_quantity`. (In a full e-commerce app, you might subtract from stock on order checkout.)  
+#### Register User
+**API:** `POST /register`
 
-- **Data Consistency:** The `Cart` schema does not enforce DB-level foreign key constraints; however, if you delete a user or product, existing cart items would remain unless you handle cascading deletes manually. You may add Mongoose middleware (pre-hooks) to clean related cart items on user/product deletion as an improvement.  
+Registers a new user account after validating name, email, and password.
 
-## Improvements & Security Considerations
+**Screenshot:** `screenshots/01-register-user.png`
 
-- **Hide Sensitive Info:** In the login response, avoid sending the hashed password back. Return only non-sensitive user fields (e.g. exclude `password`).  
-- **Use HTTPS:** Always deploy behind HTTPS so the JWT in the Authorization header is encrypted in transit.  
-- **Rate Limiting / Brute Force:** Implement rate limiting on authentication endpoints to prevent brute-force attacks.  
-- **Password Policies:** The code enforces a strong password (min 8 chars, mixed cases, number) as validation, but consider adding more checks (symbols) or using libraries like `validator`.  
-- **Validate IDs:** If a malformed Mongo ID is sent (e.g. wrong format), Mongoose may throw a `CastError`. You could catch this and return 400 instead of letting the server error.  
-- **Indexes:** Add MongoDB indexes on `Cart.userId` and `Cart.productId` to speed up queries.  
-- **Token Expiry:** JWT expires in 1 day; consider shorter TTL or a refresh token strategy for better security.  
-- **Helmet/CORS:** In production, use security middleware (like [Helmet](https://github.com/helmetjs/helmet)) and enable CORS only for allowed origins.  
-
-## Testing Tips
-
-- **Manual Testing:** Use tools like Postman or curl to test each endpoint. First register/login to get a JWT, then include that in the `Authorization` header for `/cart` routes.  
-- **Automated Tests:** You can write tests using **Jest** + **Supertest** to simulate API calls. For example, test that `POST /cart` returns 201 with valid input, or 400 when `quantity` is invalid.  
-- **Seed Data:** For testing, seed the database with a sample User and Product so you have known IDs to use. Then run `login` to obtain a token.  
-
-## Troubleshooting
-
-- **MongoDB Connection Errors:** Check that `MONGODB_URI` is correct in `.env`. The console should log success or print an error from `mongoose.connect()`.  
-- **JWT Errors:** If you see `"Invalid or expired token"`, ensure the `JWT_KEY` in `.env` matches the one used at login, and that the token is not expired. Also confirm the header is exactly `Authorization: Bearer <token>` (case-sensitive).  
-- **Duplicate Email (409 on Register):** If you retry registration with the same email, the unique index on User.email will cause a conflict. Handle or reset the test data as needed.  
-- **Unhandled Exceptions:** Add a catch-all error handler in Express (e.g. `app.use((err, req, res, next) => { ... })`) to avoid crashing. Log errors for debugging.  
+![Register User](./screenshots/01-register-user.png)
 
 ---
 
-**References:** We used standard JWT/Bearer patterns, Node.js environment conventions, and Mongoose schema validation rules to design this API. The code samples above align with official guidelines.
+#### Email Validation
+**API:** `POST /register`
+
+Validates email format before creating a user account.
+
+**Screenshot:** `screenshots/01-register-email-validation.png`
+
+![Register Email Validation](./screenshots/01-register-email-validation.png)
+
+---
+
+#### Password Validation
+**API:** `POST /register`
+
+Ensures password contains:
+- Minimum 8 characters
+- One uppercase letter
+- One lowercase letter
+- One number
+
+**Screenshot:** `screenshots/01-password-validation.png`
+
+![Password Validation](./screenshots/01-password-validation.png)
+
+---
+
+#### User Already Exists Validation
+**API:** `POST /register`
+
+Prevents duplicate user registration using the same email address.
+
+**Screenshot:** `screenshots/01-user-already-exists.png`
+
+![User Already Exists](./screenshots/01-user-already-exists.png)
+
+---
+
+#### MongoDB User Collection
+Displays newly registered user stored in MongoDB.
+
+**Screenshot:** `screenshots/01-db-user-register.png`
+
+![User Collection](./screenshots/01-db-user-register.png)
+
+---
+
+### 02. User Login
+
+#### Login User
+**API:** `POST /login`
+
+Authenticates user credentials and generates a JWT authentication token.
+
+**Screenshot:** `screenshots/02-login-user.png`
+
+![Login User](./screenshots/02-login-user.png)
+
+---
+
+### 03. Product APIs
+
+#### Seed Dummy Products
+Populates the Products collection with sample product data.
+
+**Screenshot:** `screenshots/03-seed-dummy-products.png`
+
+![Seed Products](./screenshots/03-seed-dummy-products.png)
+
+---
+
+#### MongoDB Product Collection
+Shows product documents stored in MongoDB.
+
+**Screenshot:** `screenshots/03-db-seed-product.png`
+
+![Product Collection](./screenshots/03-db-seed-product.png)
+
+---
+
+### 04. Get Product By ID
+
+#### Fetch Single Product
+**API:** `GET /products/:id`
+
+Returns details of a specific product using its MongoDB ObjectId.
+
+**Screenshot:** `screenshots/04-get-a-product.png`
+
+![Get Product](./screenshots/04-get-a-product.png)
+
+---
+
+### 05. Get All Products
+
+#### Fetch Product List
+**API:** `GET /products`
+
+Returns all available products from MongoDB.
+
+**Screenshot:** `screenshots/05-get-all-product.png`
+
+![Get All Products](./screenshots/05-get-all-product.png)
+
+---
+
+### 06. Add Product To Cart
+
+#### Add To Cart
+**API:** `POST /cart`
+
+Adds a product to the authenticated user's shopping cart.
+
+**Screenshot:** `screenshots/06-add-to-cart.png`
+
+![Add To Cart](./screenshots/06-add-to-cart.png)
+
+---
+
+#### Protected Route Validation
+**API:** `POST /cart`
+
+Validates JWT token before allowing access to cart operations.
+
+**Screenshot:** `screenshots/06-authentication-failed.png`
+
+![Authentication Failed](./screenshots/06-authentication-failed.png)
+
+---
+
+#### Duplicate Cart Item Validation
+**API:** `POST /cart`
+
+Prevents adding the same product multiple times to the user's cart.
+
+**Screenshot:** `screenshots/06-duplicate-cartitem-validation.png`
+
+![Duplicate Cart Item](./screenshots/06-duplicate-cartitem-validation.png)
+
+---
+
+#### MongoDB Cart Collection
+Displays cart item successfully stored in MongoDB.
+
+**Screenshot:** `screenshots/06-db-add-to-cart.png`
+
+![Cart Collection](./screenshots/06-db-add-to-cart.png)
+
+---
+
+### 07. Update Cart
+
+#### Update Cart Quantity
+**API:** `PUT /cart/:productId`
+
+Updates quantity of a product already present in the user's cart.
+
+**Screenshot:** `screenshots/07-update-to-cart.png`
+
+![Update Cart](./screenshots/07-update-to-cart.png)
+
+---
+
+#### Protected Route Validation
+**API:** `PUT /cart/:productId`
+
+Verifies JWT authentication before allowing cart modification.
+
+**Screenshot:** `screenshots/07-protected-update-cart-route.png`
+
+![Protected Update Route](./screenshots/07-protected-update-cart-route.png)
+
+---
+
+#### Stock Validation
+**API:** `PUT /cart/:productId`
+
+Prevents updating cart quantity beyond available product stock.
+
+**Screenshot:** `screenshots/07-update-out-of-stock-validation.png`
+
+![Stock Validation](./screenshots/07-update-out-of-stock-validation.png)
+
+---
+
+#### Cart Item Not Found
+**API:** `PUT /cart/:productId`
+
+Returns an error when attempting to update a non-existent cart item.
+
+**Screenshot:** `screenshots/07-item-not-found-update.png`
+
+![Item Not Found](./screenshots/07-item-not-found-update.png)
+
+---
+
+### Features Demonstrated
+
+- User Registration
+- User Login
+- JWT Authentication
+- Protected Routes
+- Product Listing
+- Product Details
+- Add Product To Cart
+- Update Cart Quantity
+- MongoDB Integration
+- Input Validation
+- Duplicate Record Prevention
+- Stock Validation
+- Error Handling
+- Thunder Client API Testing
