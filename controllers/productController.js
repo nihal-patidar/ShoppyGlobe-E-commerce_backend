@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Product from "../models/productModel.js";
+import isValidObjectId from "../utils/isValidObjectId.js";
 
 async function getProducts(req, res) {
   console.log("working");
@@ -20,21 +21,21 @@ async function getProducts(req, res) {
 }
 
 async function getProduct(req, res) {
-  const { id } = req.params;
+  const { productId } = req.params;
 
   try {
-    // validation for wrong product id
-    if(!mongoose.Types.ObjectId.isValid(id)){
+    if (!isValidObjectId(productId)) {
       return res.status(400).send({
-        msg : "Product isn't valid"
-      })
+        msg: "Invalid Product ID",
+      });
     }
 
-    const result = await Product.findById(id); // find Product
-    // const result = await Product.findOne({_id : id}) // can also be used
+    const result = await Product.findById(productId); // find Product
+    // const result = await Product.findOne({_id : productId}) // can also be used
     // must use await , otherwise server ejects err circular json
 
-    if (!result) {  // no product existence
+    if (!result) {
+      // no product existence
       return res.status(404).send({
         msg: "Product not found",
       });
@@ -50,7 +51,6 @@ async function getProduct(req, res) {
       msg: "Internal Server Error",
     });
   }
-
 }
 
 export { getProducts, getProduct };

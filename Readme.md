@@ -730,6 +730,19 @@ Returns an error when attempting to update a non-existent cart item.
 
 ---
 
+### 08. Delete Cart
+
+#### Delete CartItem
+**API:** `DELETE /cart/:productId`
+
+Delete a product already present in the user's cart.
+
+**Screenshot:** `screenshots/08-delete-from-cart.png`
+
+![Delete Cart](./screenshots/08-delete-from-cart.png)
+
+---
+
 ---
 
 ## Author

@@ -1,13 +1,27 @@
 import Cart from "../models/cartModel.js";
 import Product from "../models/productModel.js";
+import isValidObjectId from "../utils/isValidObjectId.js";
 
 // Add product to cart
 async function addToCart(req, res) {
   // Extract request data
   const { productId, quantity } = req.body;
 
+  if (!isValidObjectId(productId)) {
+    // validating objectId
+    return res.status(400).send({
+      msg: "Invalid Product ID",
+    });
+  }
+
   // Extract authenticated user id
   const { userId } = req.user;
+
+  if (!isValidObjectId(productId)) {
+    return res.status(400).send({
+      msg: "Invalid User ID",
+    });
+  }
 
   // Validate required fields
   if (!productId || quantity === undefined) {
@@ -63,7 +77,6 @@ async function addToCart(req, res) {
       msg: "Product added to cart successfully",
       product: cartItem,
     });
-
   } catch (err) {
     console.log("addToCart", err);
 
@@ -83,6 +96,18 @@ async function updateToCart(req, res) {
 
   // Extract authenticated user id
   const { userId } = req.user;
+
+  if (!isValidObjectId(productId)) {
+    return res.status(400).send({
+      msg: "Invalid Product ID",
+    });
+  }
+
+  if (!isValidObjectId(userId)) {
+    return res.status(400).send({
+      msg: "Invalid User ID",
+    });
+  }
 
   // Validate required fields
   if (!productId || quantity === undefined) {
@@ -128,7 +153,7 @@ async function updateToCart(req, res) {
       },
       {
         returnDocument: "after",
-      }
+      },
     );
 
     if (!updatedCartItem) {
@@ -141,7 +166,6 @@ async function updateToCart(req, res) {
       msg: "Cart quantity updated successfully",
       product: updatedCartItem,
     });
-
   } catch (err) {
     console.log("updateToCart", err);
 
@@ -158,6 +182,17 @@ async function deleteFromCart(req, res) {
 
   // Extract authenticated user id
   const { userId } = req.user;
+
+  if (!isValidObjectId(productId)) {
+    return res.status(400).send({
+      msg: "Invalid Product ID",
+    });
+  }
+  if (!isValidObjectId(userId)) {
+    return res.status(400).send({
+      msg: "Invalid User ID",
+    });
+  }
 
   // Validate required field
   if (!productId) {
@@ -183,7 +218,6 @@ async function deleteFromCart(req, res) {
       msg: "Cart item removed successfully",
       product: deletedCartItem,
     });
-
   } catch (err) {
     console.log("deleteFromCart", err);
 
@@ -193,8 +227,4 @@ async function deleteFromCart(req, res) {
   }
 }
 
-export {
-  addToCart,
-  updateToCart,
-  deleteFromCart,
-};
+export { addToCart, updateToCart, deleteFromCart };
